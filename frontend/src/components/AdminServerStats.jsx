@@ -5,7 +5,8 @@ import {
   Sparkles, Check, AlertCircle, CheckCircle2, Loader2, Trash2,
   ExternalLink, Copy, HelpCircle, Layers, Sliders, Zap, Eye,
   MessageSquare, Settings, CheckSquare, BellRing, Plus, Edit3,
-  ListPlus, ChevronRight, Play, Compass
+  ListPlus, ChevronRight, Play, Compass, Award, Trophy, Target, Send,
+  ChevronLeft
 } from 'lucide-react';
 
 export default function AdminServerStats({ guildId }) {
@@ -14,8 +15,15 @@ export default function AdminServerStats({ guildId }) {
   const [errorMsg, setErrorMsg] = useState(null);
   const [successMsg, setSuccessMsg] = useState(null);
 
-  // Active Tab within this section: 'SERVER_STATS' | 'VOICE_SUBTITLES'
-  const [activeSubTab, setActiveSubTab] = useState('VOICE_SUBTITLES'); // Default to the user's requested multi-channel subtitle manager!
+  // Active Tab within this section: 'VOICE_SUBTITLES' | 'SERVER_STATS' | 'XP_LEADERBOARD'
+  const [activeSubTab, setActiveSubTab] = useState('XP_LEADERBOARD'); // Default to the newly requested XP Leaderboard view!
+
+  // XP Leaderboard State (Screenshot Replica)
+  const [leaderboardData, setLeaderboardData] = useState({ members: [], total: 0, page: 1, totalPages: 1 });
+  const [loadingLb, setLoadingLb] = useState(false);
+  const [lbTargetChannel, setLbTargetChannel] = useState('');
+  const [sendingLb, setSendingLb] = useState(false);
+  const [lbPage, setLbPage] = useState(1);
 
   // Settings State
   const [formSettings, setFormSettings] = useState({
@@ -109,11 +117,48 @@ export default function AdminServerStats({ guildId }) {
           ]);
         }
       }
+
+      if (res && res.textChannels && res.textChannels.length > 0 && !lbTargetChannel) {
+        setLbTargetChannel(res.textChannels[0].id);
+      }
+
+      // Fetch initial leaderboard page
+      fetchLeaderboard(1);
     } catch (err) {
       console.error('Failed to fetch server stats details:', err);
       setErrorMsg(err.message || 'Failed to load server statistics data');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchLeaderboard = async (page = 1) => {
+    setLoadingLb(true);
+    try {
+      const res = await api.getLevelLeaderboard(guildId, { page, limit: 10 });
+      setLeaderboardData(res || { members: [], total: 0, page: 1, totalPages: 1 });
+      setLbPage(page);
+    } catch (err) {
+      console.error('Failed to load leaderboard data:', err);
+    } finally {
+      setLoadingLb(false);
+    }
+  };
+
+  const handleSendLeaderboard = async () => {
+    if (!lbTargetChannel) {
+      setErrorMsg('Please select a Discord text channel to send the leaderboard.');
+      return;
+    }
+    setSendingLb(true);
+    setErrorMsg(null);
+    try {
+      const res = await api.sendLeaderboardEmbed(guildId, lbTargetChannel, lbPage);
+      setSuccessMsg(res.message || 'Interactive XP Leaderboard embed sent to Discord channel successfully!');
+    } catch (err) {
+      setErrorMsg(err.message || 'Failed to send leaderboard embed to Discord.');
+    } finally {
+      setSendingLb(false);
     }
   };
 
@@ -424,6 +469,39 @@ export default function AdminServerStats({ guildId }) {
           >
             <BarChart3 size={17} />
             Server & Voice Stats Counters
+          </button>
+
+          <button
+            onClick={() => {
+              setActiveSubTab('XP_LEADERBOARD');
+              fetchLeaderboard(lbPage);
+            }}
+            style={{
+              padding: '10px 18px',
+              borderRadius: '10px',
+              border: activeSubTab === 'XP_LEADERBOARD' ? '1px solid rgba(234, 179, 8, 0.5)' : '1px solid transparent',
+              backgroundColor: activeSubTab === 'XP_LEADERBOARD' ? '#eab308' : 'rgba(255, 255, 255, 0.05)',
+              color: activeSubTab === 'XP_LEADERBOARD' ? '#000000' : '#cbd5e1',
+              fontWeight: '800',
+              fontSize: '0.86rem',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+          >
+            <Trophy size={17} />
+            XP Leaderboard
+            <span style={{
+              backgroundColor: activeSubTab === 'XP_LEADERBOARD' ? 'rgba(0,0,0,0.2)' : 'rgba(234, 179, 8, 0.2)',
+              color: activeSubTab === 'XP_LEADERBOARD' ? '#000000' : '#facc15',
+              fontSize: '0.7rem',
+              padding: '2px 6px',
+              borderRadius: '6px',
+              fontWeight: '800'
+            }}>
+              SCREENSHOT DESIGN
+            </span>
           </button>
         </div>
 
@@ -1235,6 +1313,405 @@ export default function AdminServerStats({ guildId }) {
           </div>
 
         </form>
+      )}
+
+      {/* ========================================================================= */}
+      {/* SECTION C: XP LEADERBOARD (MATCHING USER SCREENSHOT DESIGN)               */}
+      {/* ========================================================================= */}
+      {activeSubTab === 'XP_LEADERBOARD' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+
+          {/* Top Control Bar: Select Channel & Broadcast Embed */}
+          <div style={{
+            backgroundColor: '#0f172a',
+            borderRadius: '16px',
+            padding: '20px 24px',
+            border: '1px solid rgba(234, 179, 8, 0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '16px'
+          }}>
+            <div>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: '800', margin: 0, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Trophy size={20} color="#eab308" />
+                Discord XP Leaderboard Embed
+              </h3>
+              <p style={{ fontSize: '0.8rem', color: '#94a3b8', margin: '4px 0 0 0' }}>
+                Matches the exact layout from your screenshot with <strong>🎯 Server Activity</strong> & <strong>🏆 Leaderboard</strong>, Discord mention pills, and interactive pagination buttons.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+              {/* Channel Selector */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '0.8rem', color: '#cbd5e1', fontWeight: '700' }}>Post to Channel:</span>
+                <select
+                  value={lbTargetChannel}
+                  onChange={(e) => setLbTargetChannel(e.target.value)}
+                  style={{
+                    padding: '8px 12px',
+                    backgroundColor: '#1e293b',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    borderRadius: '8px',
+                    color: '#ffffff',
+                    fontSize: '0.82rem',
+                    outline: 'none',
+                    minWidth: '180px'
+                  }}
+                >
+                  <option value="">(Select text channel)</option>
+                  {(data?.textChannels || []).map(tc => (
+                    <option key={tc.id} value={tc.id}>
+                      #{tc.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleSendLeaderboard}
+                disabled={sendingLb}
+                style={{
+                  padding: '9px 16px',
+                  backgroundColor: '#eab308',
+                  border: 'none',
+                  borderRadius: '10px',
+                  color: '#000000',
+                  fontWeight: '800',
+                  fontSize: '0.84rem',
+                  cursor: sendingLb ? 'not-allowed' : 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  boxShadow: '0 4px 12px rgba(234, 179, 8, 0.3)'
+                }}
+              >
+                {sendingLb ? <Loader2 size={16} className="spin" /> : <Send size={16} />}
+                Send Embed to Channel
+              </button>
+
+              <button
+                type="button"
+                onClick={() => fetchLeaderboard(lbPage)}
+                disabled={loadingLb}
+                style={{
+                  padding: '9px 14px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  borderRadius: '10px',
+                  color: '#cbd5e1',
+                  fontWeight: '700',
+                  fontSize: '0.84rem',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <RefreshCw size={14} className={loadingLb ? 'spin' : ''} />
+                Refresh
+              </button>
+            </div>
+          </div>
+
+          {/* 2-COLUMN VIEW: Discord Embed Mockup (Left) & Chat Command / Settings Guide (Right) */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(340px, 420px) 1fr', gap: '24px' }}>
+
+            {/* LEFT COLUMN: THE DISCORD EMBED REPLICA (EXACT SCREENSHOT DESIGN) */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: '800', color: '#cbd5e1', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Eye size={16} color="#eab308" />
+                Live Discord Embed Preview:
+              </div>
+
+              {/* Discord Embed Container */}
+              <div style={{
+                backgroundColor: '#2b2d31', // Discord sleek dark card
+                borderRadius: '8px',
+                padding: '16px 20px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px',
+                border: '1px solid rgba(255, 255, 255, 0.06)',
+                boxShadow: '0 8px 30px rgba(0, 0, 0, 0.5)'
+              }}>
+
+                {/* EMBED TOP HEADER: Title + Guild Icon Thumbnail */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <div style={{ fontSize: '1.25rem', fontWeight: '900', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px', letterSpacing: '-0.3px' }}>
+                      🎯 Server Activity
+                    </div>
+                    <div style={{ fontSize: '1.25rem', fontWeight: '900', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px', letterSpacing: '-0.3px' }}>
+                      🏆 Leaderboard
+                    </div>
+                  </div>
+
+                  {/* Thumbnail */}
+                  <div style={{
+                    width: '64px',
+                    height: '64px',
+                    borderRadius: '12px',
+                    overflow: 'hidden',
+                    backgroundColor: '#1e1f22',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    flexShrink: 0
+                  }}>
+                    {data?.guildInfo?.icon ? (
+                      <img src={data.guildInfo.icon} alt="Server Icon" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#eab308', fontSize: '1.5rem' }}>
+                        🏆
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Thin divider under header */}
+                <div style={{ height: '1px', backgroundColor: 'rgba(255, 255, 255, 0.06)', margin: '4px 0' }} />
+
+                {/* ENTRIES LIST */}
+                {loadingLb ? (
+                  <div style={{ padding: '30px', textAlign: 'center', color: '#94a3b8' }}>
+                    <Loader2 size={24} className="spin" style={{ margin: '0 auto 8px auto' }} />
+                    <div style={{ fontSize: '0.82rem' }}>Loading leaderboard entries...</div>
+                  </div>
+                ) : leaderboardData.members.length === 0 ? (
+                  <div style={{ padding: '24px', textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>
+                    No members have earned XP yet in this server!<br />
+                    Chat in text channels or chill in voice channels to rank up.
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    {leaderboardData.members.map((member, idx) => (
+                      <div key={member.userId || idx} style={{ display: 'flex', flexDirection: 'column' }}>
+                        <div style={{ padding: '6px 0' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                            <span style={{ fontWeight: '900', color: '#ffffff', fontSize: '0.92rem' }}>
+                              #{member.rank}
+                            </span>
+                            {/* Discord Mention Pill */}
+                            <span style={{
+                              backgroundColor: '#3c4270',
+                              color: '#c9cdfb',
+                              padding: '2px 8px',
+                              borderRadius: '4px',
+                              fontSize: '0.85rem',
+                              fontWeight: '600'
+                            }}>
+                              @{member.username || 'Member'}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: '0.82rem', color: '#dcddde', marginTop: '3px' }}>
+                            Level: {member.level} | XP: {(member.xp || 0).toLocaleString()}/{(member.nextLevelXp || 0).toLocaleString()}
+                          </div>
+                        </div>
+
+                        {/* Thin horizontal divider line exactly matching screenshot */}
+                        <div style={{
+                          height: '1px',
+                          backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                          margin: '4px 0'
+                        }} />
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* INTERACTIVE BUTTONS CONTAINER */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }}>
+                  {/* Row 1: [👤 Your Rank] [🔄 Refresh] */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={() => alert('In Discord, clicking "👤 Your Rank" instantly highlights your ranking on the server leaderboard!')}
+                      style={{
+                        padding: '9px 14px',
+                        backgroundColor: '#4e5058',
+                        border: 'none',
+                        borderRadius: '4px',
+                        color: '#ffffff',
+                        fontWeight: '700',
+                        fontSize: '0.85rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      <span>👤</span> Your Rank
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => fetchLeaderboard(lbPage)}
+                      style={{
+                        padding: '9px 14px',
+                        backgroundColor: '#4e5058',
+                        border: 'none',
+                        borderRadius: '4px',
+                        color: '#ffffff',
+                        fontWeight: '700',
+                        fontSize: '0.85rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      <span>🔄</span> Refresh
+                    </button>
+                  </div>
+
+                  {/* Row 2: [⬅️ Previous] [➡️ Next] */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                    <button
+                      type="button"
+                      disabled={lbPage <= 1 || loadingLb}
+                      onClick={() => fetchLeaderboard(lbPage - 1)}
+                      style={{
+                        padding: '9px 14px',
+                        backgroundColor: lbPage <= 1 ? '#35373c' : '#4e5058',
+                        border: 'none',
+                        borderRadius: '4px',
+                        color: lbPage <= 1 ? '#80848e' : '#ffffff',
+                        fontWeight: '700',
+                        fontSize: '0.85rem',
+                        cursor: lbPage <= 1 ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      <span>⬅️</span> Previous
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={lbPage >= (leaderboardData.totalPages || 1) || loadingLb}
+                      onClick={() => fetchLeaderboard(lbPage + 1)}
+                      style={{
+                        padding: '9px 14px',
+                        backgroundColor: lbPage >= (leaderboardData.totalPages || 1) ? '#35373c' : '#4e5058',
+                        border: 'none',
+                        borderRadius: '4px',
+                        color: lbPage >= (leaderboardData.totalPages || 1) ? '#80848e' : '#ffffff',
+                        fontWeight: '700',
+                        fontSize: '0.85rem',
+                        cursor: lbPage >= (leaderboardData.totalPages || 1) ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      <span>➡️</span> Next
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            {/* RIGHT COLUMN: LEADERBOARD BOT COMMANDS & SERVER LEVELING SUMMARY */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+
+              {/* Bot Commands Guide */}
+              <div style={{
+                backgroundColor: '#0f172a',
+                borderRadius: '16px',
+                padding: '20px',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '14px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <MessageSquare size={18} color="#eab308" />
+                  <span style={{ fontWeight: '800', fontSize: '0.95rem', color: '#ffffff' }}>
+                    Discord Chat Prefix Commands
+                  </span>
+                </div>
+                <p style={{ fontSize: '0.8rem', color: '#94a3b8', margin: 0 }}>
+                  Members can call up this interactive leaderboard directly in authorized text channels using any of the following triggers:
+                </p>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '10px' }}>
+                  {[
+                    { cmd: '?lb', desc: 'Shows page 1 of leaderboard' },
+                    { cmd: '?top', desc: 'Top server members' },
+                    { cmd: '?leaderboard', desc: 'Full leaderboard embed' },
+                    { cmd: '?lb 2', desc: 'Direct jump to page 2' }
+                  ].map(c => (
+                    <div key={c.cmd} style={{
+                      backgroundColor: '#1e293b',
+                      borderRadius: '10px',
+                      padding: '10px 12px',
+                      border: '1px solid rgba(255, 255, 255, 0.06)'
+                    }}>
+                      <code style={{ color: '#facc15', fontWeight: '800', fontSize: '0.85rem' }}>{c.cmd}</code>
+                      <div style={{ fontSize: '0.74rem', color: '#94a3b8', marginTop: '3px' }}>{c.desc}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Real-Time Ranking Summary */}
+              <div style={{
+                backgroundColor: '#0f172a',
+                borderRadius: '16px',
+                padding: '20px',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '14px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Award size={18} color="#3b82f6" />
+                  <span style={{ fontWeight: '800', fontSize: '0.95rem', color: '#ffffff' }}>
+                    Leaderboard Information & Pagination
+                  </span>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div style={{ backgroundColor: '#1e293b', padding: '12px', borderRadius: '10px' }}>
+                    <div style={{ fontSize: '0.74rem', color: '#94a3b8' }}>Total Ranked Members</div>
+                    <div style={{ fontSize: '1.25rem', fontWeight: '800', color: '#ffffff', marginTop: '4px' }}>
+                      {leaderboardData.total || 0}
+                    </div>
+                  </div>
+                  <div style={{ backgroundColor: '#1e293b', padding: '12px', borderRadius: '10px' }}>
+                    <div style={{ fontSize: '0.74rem', color: '#94a3b8' }}>Current Page</div>
+                    <div style={{ fontSize: '1.25rem', fontWeight: '800', color: '#eab308', marginTop: '4px' }}>
+                      Page {lbPage} of {leaderboardData.totalPages || 1}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{
+                  padding: '12px 14px',
+                  backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                  borderRadius: '10px',
+                  border: '1px solid rgba(99, 102, 241, 0.25)',
+                  fontSize: '0.8rem',
+                  color: '#a5b4fc',
+                  lineHeight: '1.4'
+                }}>
+                  💡 <strong>Tip:</strong> You can broadcast this interactive embed to any text channel like <code>#leaderboard</code> or <code>#general</code> with the selector above. The buttons will remain active and fully functional for all server members!
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
       )}
 
       {/* MODAL: ADD NEW VOICE CHANNEL SUBTITLE */}
