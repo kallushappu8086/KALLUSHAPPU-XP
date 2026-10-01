@@ -2974,7 +2974,7 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
                       <th style={{ padding: '12px 14px' }}>XP Breakdown</th>
                       <th style={{ padding: '12px 14px' }}>Next Level Target</th>
                       <th style={{ padding: '12px 14px' }}>Messages</th>
-                      <th style={{ padding: '12px 14px' }}>Voice Time & Channels</th>
+                      <th style={{ padding: '12px 14px' }}>Voice Time</th>
                       <th style={{ padding: '12px 14px', textAlign: 'right' }}>Actions</th>
                     </tr>
                   </thead>
@@ -2994,23 +2994,6 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
                             <div>
                               <div style={{ fontWeight: '700', color: '#ffffff', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                                 <span>{m.username}</span>
-                                {m.isCurrentlyInVoice && (
-                                  <span style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '4px',
-                                    padding: '1px 6px',
-                                    borderRadius: '6px',
-                                    fontSize: '0.7rem',
-                                    backgroundColor: 'rgba(34, 197, 94, 0.15)',
-                                    color: '#4ade80',
-                                    border: '1px solid rgba(34, 197, 94, 0.3)',
-                                    fontWeight: '600'
-                                  }}>
-                                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#22c55e', display: 'inline-block' }}></span>
-                                    In VC: {m.currentVoiceChannel?.name ? m.currentVoiceChannel.name.slice(0, 16) : 'Voice'}
-                                  </span>
-                                )}
                               </div>
                               <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>ID: {m.userId}</div>
                             </div>
@@ -3051,28 +3034,8 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
                         <td style={{ padding: '12px 14px', fontSize: '0.85rem', color: '#cbd5e1' }}>
                           {m.messagesCount || 0} msgs
                         </td>
-                        <td style={{ padding: '12px 14px' }}>
-                          <div style={{ fontWeight: '700', color: '#34d399', fontSize: '0.85rem' }}>
-                            {m.voiceMinutes !== undefined ? m.voiceMinutes : Math.floor((m.voiceTimeSeconds || 0) / 60)} mins
-                          </div>
-                          {(() => {
-                            if (m.channelsActivity && typeof m.channelsActivity === 'object') {
-                              const vcEntries = Object.entries(m.channelsActivity)
-                                .filter(([id, data]) => data && (data.type === 'voice' || (data.count && data.count > 0)))
-                                .sort((a, b) => (b[1].count || 0) - (a[1].count || 0));
-                              if (vcEntries.length > 0) {
-                                const top = vcEntries[0][1];
-                                const topMins = Math.floor((top.count || 0) / 60);
-                                const cleanName = (top.name || 'Voice').replace(/^[#🔊\s]+/, '');
-                                return (
-                                  <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '2px' }} title={`Top VC: ${cleanName} (${topMins} mins)`}>
-                                    🔊 {cleanName.slice(0, 16)}: {topMins}m
-                                  </div>
-                                );
-                              }
-                            }
-                            return null;
-                          })()}
+                        <td style={{ padding: '12px 14px', fontSize: '0.85rem', color: '#cbd5e1', fontWeight: '700' }}>
+                          {m.voiceMinutes !== undefined ? m.voiceMinutes : Math.floor((m.voiceTimeSeconds || 0) / 60)} mins
                         </td>
                         <td style={{ padding: '12px 14px', textAlign: 'right' }}>
                           <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}>
