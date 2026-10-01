@@ -239,6 +239,10 @@ export const api = {
   }),
   getLevelStats: (guildId) => request(`/guilds/${guildId}/levels/stats`),
   autoGenerateLevelRoles: (guildId) => request(`/guilds/${guildId}/levels/auto-generate-roles`, { method: 'POST' }),
+  sendLeaderboardEmbed: (guildId, channelId, page = 1) => request(`/guilds/${guildId}/levels/send-leaderboard`, {
+    method: 'POST',
+    body: JSON.stringify({ channelId, page })
+  }),
 
   // Custom VC & Voice Manager Endpoints
   getCustomVcDetails: (guildId) => request(`/admin/guilds/${guildId}/custom-vc`),
