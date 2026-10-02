@@ -146,6 +146,8 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
   const [loadingSettings, setLoadingSettings] = useState(false);
   const [loveChannelSearch, setLoveChannelSearch] = useState('');
   const [xpChannelSearch, setXpChannelSearch] = useState('');
+  const [chatXpChannelSearch, setChatXpChannelSearch] = useState('');
+  const [voiceXpChannelSearch, setVoiceXpChannelSearch] = useState('');
 
   const fetchLevelData = async () => {
     try {
@@ -163,6 +165,12 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
         if (sData.leveling.notifyLevelUp === undefined) sData.leveling.notifyLevelUp = true;
         if (sData.leveling.levelUpChannelId === undefined) sData.leveling.levelUpChannelId = '';
         if (!sData.leveling.levelUpMessage) sData.leveling.levelUpMessage = 'Awesome job, {user}! You just leveled up.';
+        if (!Array.isArray(sData.leveling.allowedTextChannels)) {
+          sData.leveling.allowedTextChannels = sData.leveling.allowedChatChannels || [];
+        }
+        if (!Array.isArray(sData.leveling.allowedVoiceChannels)) {
+          sData.leveling.allowedVoiceChannels = [];
+        }
         if (!sData.leveling.levelRoles || sData.leveling.levelRoles.length === 0) {
           sData.leveling.levelRoles = JSON.parse(JSON.stringify(DEFAULT_LEVEL_CONFIGS));
         } else {
@@ -197,7 +205,7 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
             setSettings(s);
             setSavedSettings(JSON.parse(JSON.stringify(s)));
           }
-        }).catch(() => {});
+        }).catch(() => { });
       }
     }
   }, [activeSubTab, guildId, levelSearchQuery]);
@@ -588,6 +596,88 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
     });
   };
 
+  const handleToggleChatXpChannel = (channelId) => {
+    setSettings(prev => {
+      const currentAllowed = Array.isArray(prev?.leveling?.allowedTextChannels)
+        ? [...prev.leveling.allowedTextChannels]
+        : [];
+      const index = currentAllowed.indexOf(channelId);
+      if (index >= 0) {
+        currentAllowed.splice(index, 1);
+      } else {
+        currentAllowed.push(channelId);
+      }
+      return {
+        ...prev,
+        leveling: {
+          ...(prev?.leveling || {}),
+          allowedTextChannels: currentAllowed
+        }
+      };
+    });
+  };
+
+  const handleSelectAllChatXpChannels = (channelIds) => {
+    setSettings(prev => ({
+      ...prev,
+      leveling: {
+        ...(prev?.leveling || {}),
+        allowedTextChannels: [...channelIds]
+      }
+    }));
+  };
+
+  const handleClearChatXpChannels = () => {
+    setSettings(prev => ({
+      ...prev,
+      leveling: {
+        ...(prev?.leveling || {}),
+        allowedTextChannels: []
+      }
+    }));
+  };
+
+  const handleToggleVoiceXpChannel = (channelId) => {
+    setSettings(prev => {
+      const currentAllowed = Array.isArray(prev?.leveling?.allowedVoiceChannels)
+        ? [...prev.leveling.allowedVoiceChannels]
+        : [];
+      const index = currentAllowed.indexOf(channelId);
+      if (index >= 0) {
+        currentAllowed.splice(index, 1);
+      } else {
+        currentAllowed.push(channelId);
+      }
+      return {
+        ...prev,
+        leveling: {
+          ...(prev?.leveling || {}),
+          allowedVoiceChannels: currentAllowed
+        }
+      };
+    });
+  };
+
+  const handleSelectAllVoiceXpChannels = (channelIds) => {
+    setSettings(prev => ({
+      ...prev,
+      leveling: {
+        ...(prev?.leveling || {}),
+        allowedVoiceChannels: [...channelIds]
+      }
+    }));
+  };
+
+  const handleClearVoiceXpChannels = () => {
+    setSettings(prev => ({
+      ...prev,
+      leveling: {
+        ...(prev?.leveling || {}),
+        allowedVoiceChannels: []
+      }
+    }));
+  };
+
   const handleUpdateMemberXpSubmit = async (e) => {
     if (e) e.preventDefault();
     if (!levelEditMember || !levelEditMember.userId) {
@@ -609,7 +699,7 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
       if (selectedMemberDetails && selectedMemberDetails.userId === targetId) {
         api.getMemberLevelDetails(guildId, targetId).then(d => {
           if (d) setSelectedMemberDetails(d);
-        }).catch(() => {});
+        }).catch(() => { });
       }
       setTimeout(() => setSuccessMsg(null), 4000);
     } catch (err) {
@@ -2765,10 +2855,10 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
                             <div style={{ fontSize: '0.9rem', color: '#dbdee1', marginTop: '8px', lineHeight: 1.4 }}>
                               {settings?.leveling?.levelUpMessage && settings.leveling.levelUpMessage !== '🎉 Congratulations {user}, you leveled up to **Level {level}**! 🚀'
                                 ? settings.leveling.levelUpMessage
-                                    .replace(/{user}/gi, '@SMOOTH')
-                                    .replace(/{username}/gi, 'SMOOTH')
-                                    .replace(/{level}/gi, '5')
-                                    .replace(/{xp}/gi, '2,500')
+                                  .replace(/{user}/gi, '@SMOOTH')
+                                  .replace(/{username}/gi, 'SMOOTH')
+                                  .replace(/{level}/gi, '5')
+                                  .replace(/{xp}/gi, '2,500')
                                 : (
                                   <>
                                     Awesome job, <span style={{ backgroundColor: 'rgba(88, 101, 242, 0.3)', color: '#c9cdfb', padding: '1px 5px', borderRadius: '4px', fontWeight: '600' }}>@SMOOTH</span>! You just leveled up.
@@ -2906,6 +2996,266 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
               >
                 <Save size={16} /> Save XP Rates
               </button>
+            </div>
+          </div>
+
+          {/* Selected Chat & Voice Channels for XP Panel */}
+          <div className="glass-panel" style={{ padding: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', borderBottom: '1px solid var(--border-color)', paddingBottom: '14px', flexWrap: 'wrap', gap: '12px' }}>
+              <div>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: '800', margin: 0, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <Hash size={22} color="#38bdf8" />
+                  <Volume2 size={22} color="#a855f7" />
+                  Selected Chat & Voice Channels for XP Gain
+                </h3>
+                <p style={{ fontSize: '0.82rem', color: '#94a3b8', margin: '4px 0 0 0' }}>
+                  Configure which specific chat channels and voice channels award XP to members. When channels are selected, XP will <strong>ONLY</strong> increase in those channels.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleSaveLevelingSettings}
+                disabled={saving}
+                className="btn-primary"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '10px 20px',
+                  backgroundColor: '#3b82f6',
+                  borderColor: '#2563eb',
+                  fontWeight: '700',
+                  borderRadius: '10px'
+                }}
+              >
+                {saving ? <Loader size={16} className="spin" /> : <Save size={16} />}
+                <span>Save Channel XP Settings</span>
+              </button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '20px' }}>
+              {/* CHAT / TEXT CHANNELS */}
+              <div style={{ backgroundColor: 'rgba(15, 23, 42, 0.5)', padding: '18px 20px', borderRadius: '14px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '10px' }}>
+                  <div>
+                    <div style={{ fontWeight: '700', fontSize: '0.95rem', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Hash size={16} color="#38bdf8" />
+                      <span>Selected Chat Channels</span>
+                    </div>
+                    <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '2px' }}>
+                      For message sending XP increase
+                    </div>
+                  </div>
+
+                  <span
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: '8px',
+                      fontSize: '0.74rem',
+                      fontWeight: '800',
+                      backgroundColor: (settings?.leveling?.allowedTextChannels?.length > 0) ? 'rgba(56, 189, 248, 0.2)' : 'rgba(16, 185, 129, 0.2)',
+                      color: (settings?.leveling?.allowedTextChannels?.length > 0) ? '#38bdf8' : '#34d399',
+                      border: (settings?.leveling?.allowedTextChannels?.length > 0) ? '1px solid rgba(56, 189, 248, 0.4)' : '1px solid rgba(16, 185, 129, 0.4)'
+                    }}
+                  >
+                    {(settings?.leveling?.allowedTextChannels?.length > 0)
+                      ? `RESTRICTED (${settings.leveling.allowedTextChannels.length} CHANNELS)`
+                      : 'ALL CHANNELS ACTIVE'}
+                  </span>
+                </div>
+
+                <p style={{ margin: '0 0 14px 0', fontSize: '0.8rem', color: '#cbd5e1', lineHeight: '1.4' }}>
+                  {(settings?.leveling?.allowedTextChannels?.length > 0)
+                    ? '✨ Member messages only earn XP in the selected chat channels below. Messages sent in other channels will give 0 XP.'
+                    : '🌐 No channels selected — sending messages in any text channel currently awards XP. Click channels below to restrict.'}
+                </p>
+
+                {/* Filter and Quick Actions */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', marginBottom: '12px', flexWrap: 'wrap' }}>
+                  <input
+                    type="text"
+                    placeholder="Filter chat channels..."
+                    value={chatXpChannelSearch}
+                    onChange={(e) => setChatXpChannelSearch(e.target.value)}
+                    className="glass-input"
+                    style={{ padding: '6px 12px', fontSize: '0.82rem', flex: '1 1 180px' }}
+                  />
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <button
+                      type="button"
+                      onClick={() => handleSelectAllChatXpChannels(((data?.channels || []).filter(c => c.type === 0 || c.type === 5)).map(c => c.id))}
+                      className="btn-secondary"
+                      style={{ padding: '5px 10px', fontSize: '0.75rem' }}
+                    >
+                      Select All
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleClearChatXpChannels}
+                      className="btn-secondary"
+                      style={{ padding: '5px 10px', fontSize: '0.75rem' }}
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+
+                {/* Badges List */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', maxHeight: '200px', overflowY: 'auto', padding: '4px' }}>
+                  {(() => {
+                    const textChans = ((data?.channels || []).filter(c => c.type === 0 || c.type === 5))
+                      .filter(c => c.name.toLowerCase().includes(chatXpChannelSearch.toLowerCase()));
+                    if (textChans.length === 0) {
+                      return (
+                        <div style={{ color: '#64748b', fontSize: '0.8rem', padding: '12px 0', width: '100%', textAlign: 'center' }}>
+                          No text channels found matching search.
+                        </div>
+                      );
+                    }
+                    return textChans.map(ch => {
+                      const isAllowed = (settings?.leveling?.allowedTextChannels || []).includes(ch.id);
+                      return (
+                        <button
+                          key={ch.id}
+                          type="button"
+                          onClick={() => handleToggleChatXpChannel(ch.id)}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            padding: '6px 12px',
+                            borderRadius: '10px',
+                            backgroundColor: isAllowed ? 'rgba(56, 189, 248, 0.2)' : 'rgba(15, 23, 42, 0.7)',
+                            border: isAllowed ? '1.5px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.08)',
+                            color: isAllowed ? '#ffffff' : '#94a3b8',
+                            fontSize: '0.82rem',
+                            fontWeight: isAllowed ? '700' : '500',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          <Hash size={13} color={isAllowed ? '#38bdf8' : '#64748b'} />
+                          <span>{ch.name}</span>
+                          {isAllowed && <Check size={13} color="#38bdf8" />}
+                        </button>
+                      );
+                    });
+                  })()}
+                </div>
+              </div>
+
+              {/* VOICE CHANNELS */}
+              <div style={{ backgroundColor: 'rgba(15, 23, 42, 0.5)', padding: '18px 20px', borderRadius: '14px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '10px' }}>
+                  <div>
+                    <div style={{ fontWeight: '700', fontSize: '0.95rem', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Volume2 size={16} color="#a855f7" />
+                      <span>Selected Voice Channels</span>
+                    </div>
+                    <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '2px' }}>
+                      For voice channel activity XP increase
+                    </div>
+                  </div>
+
+                  <span
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: '8px',
+                      fontSize: '0.74rem',
+                      fontWeight: '800',
+                      backgroundColor: (settings?.leveling?.allowedVoiceChannels?.length > 0) ? 'rgba(168, 85, 247, 0.2)' : 'rgba(16, 185, 129, 0.2)',
+                      color: (settings?.leveling?.allowedVoiceChannels?.length > 0) ? '#c084fc' : '#34d399',
+                      border: (settings?.leveling?.allowedVoiceChannels?.length > 0) ? '1px solid rgba(168, 85, 247, 0.4)' : '1px solid rgba(16, 185, 129, 0.4)'
+                    }}
+                  >
+                    {(settings?.leveling?.allowedVoiceChannels?.length > 0)
+                      ? `RESTRICTED (${settings.leveling.allowedVoiceChannels.length} CHANNELS)`
+                      : 'ALL VOICE CHANNELS ACTIVE'}
+                  </span>
+                </div>
+
+                <p style={{ margin: '0 0 14px 0', fontSize: '0.8rem', color: '#cbd5e1', lineHeight: '1.4' }}>
+                  {(settings?.leveling?.allowedVoiceChannels?.length > 0)
+                    ? '✨ Member voice time only earns XP when joined in the selected voice channels below. Other voice channels will give 0 XP.'
+                    : '🌐 No voice channels selected — joining and talking in any voice channel currently awards voice XP. Click channels below to restrict.'}
+                </p>
+
+                {/* Filter and Quick Actions */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', marginBottom: '12px', flexWrap: 'wrap' }}>
+                  <input
+                    type="text"
+                    placeholder="Filter voice channels..."
+                    value={voiceXpChannelSearch}
+                    onChange={(e) => setVoiceXpChannelSearch(e.target.value)}
+                    className="glass-input"
+                    style={{ padding: '6px 12px', fontSize: '0.82rem', flex: '1 1 180px' }}
+                  />
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <button
+                      type="button"
+                      onClick={() => handleSelectAllVoiceXpChannels(((data?.channels || []).filter(c => c.type === 2 || c.type === 13)).map(c => c.id))}
+                      className="btn-secondary"
+                      style={{ padding: '5px 10px', fontSize: '0.75rem' }}
+                    >
+                      Select All
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleClearVoiceXpChannels}
+                      className="btn-secondary"
+                      style={{ padding: '5px 10px', fontSize: '0.75rem' }}
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+
+                {/* Badges List */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', maxHeight: '200px', overflowY: 'auto', padding: '4px' }}>
+                  {(() => {
+                    const voiceChans = ((data?.channels || []).filter(c => c.type === 2 || c.type === 13))
+                      .filter(c => c.name.toLowerCase().includes(voiceXpChannelSearch.toLowerCase()));
+                    if (voiceChans.length === 0) {
+                      return (
+                        <div style={{ color: '#64748b', fontSize: '0.8rem', padding: '12px 0', width: '100%', textAlign: 'center' }}>
+                          No voice channels found matching search.
+                        </div>
+                      );
+                    }
+                    return voiceChans.map(vc => {
+                      const isAllowed = (settings?.leveling?.allowedVoiceChannels || []).includes(vc.id);
+                      return (
+                        <button
+                          key={vc.id}
+                          type="button"
+                          onClick={() => handleToggleVoiceXpChannel(vc.id)}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            padding: '6px 12px',
+                            borderRadius: '10px',
+                            backgroundColor: isAllowed ? 'rgba(168, 85, 247, 0.2)' : 'rgba(15, 23, 42, 0.7)',
+                            border: isAllowed ? '1.5px solid #a855f7' : '1px solid rgba(255, 255, 255, 0.08)',
+                            color: isAllowed ? '#ffffff' : '#94a3b8',
+                            fontSize: '0.82rem',
+                            fontWeight: isAllowed ? '700' : '500',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          <Volume2 size={13} color={isAllowed ? '#c084fc' : '#64748b'} />
+                          <span>{vc.name}</span>
+                          {isAllowed && <Check size={13} color="#c084fc" />}
+                        </button>
+                      );
+                    });
+                  })()}
+                </div>
+              </div>
             </div>
           </div>
 
