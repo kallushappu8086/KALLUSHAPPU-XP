@@ -1,3 +1,0 @@
-/uploads/*  http://nokia.vexanode.gg:19192/uploads/:splat  200
-/api/*      http://nokia.vexanode.gg:19192/api/:splat      200
-/*          /index.html                                      200
