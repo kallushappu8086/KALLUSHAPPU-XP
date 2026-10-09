@@ -2415,7 +2415,7 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
                   Server XP, Levels & Automatic Role Rewards
                 </h3>
                 <p style={{ fontSize: '0.85rem', color: '#cbd5e1', margin: '4px 0 0 0', lineHeight: '1.5' }}>
-                  Members gain XP by chatting in channels and staying active in voice channels. When members reach an XP level target, Discord roles are automatically generated and granted!
+                  Members gain XP by chatting in channels and staying active in voice channels. When members reach an XP level target, the role selected for that level in the admin panel is automatically granted!
                 </p>
               </div>
 
@@ -2668,7 +2668,7 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
                           className="glass-input"
                           style={{ width: '100%', padding: '6px 10px', fontSize: '0.82rem' }}
                         >
-                          <option value="">✨ Auto-create on Discord</option>
+                          <option value="">-- None (No Role Assigned) --</option>
                           {serverRoles.map(r => (
                             <option key={r.id} value={r.id} style={{ color: r.color }}>
                               @{r.name}
@@ -4362,7 +4362,7 @@ export default function AdminServerSettings({ guildId, onHasUnsavedChangesChange
                     className="glass-input"
                     style={{ width: '100%', padding: '9px 12px', fontSize: '0.82rem' }}
                   >
-                    <option value="">✨ Auto-create on Discord</option>
+                    <option value="">-- None (No Role Assigned) --</option>
                     {serverRoles.map(r => (
                       <option key={r.id} value={r.id} style={{ color: r.color }}>
                         @{r.name}
