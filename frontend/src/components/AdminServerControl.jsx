@@ -127,6 +127,18 @@ export default function AdminServerControl({ guildId, onNavigateToServer }) {
   const [logSearchQuery, setLogSearchQuery] = useState('');
   const [copiedCmd, setCopiedCmd] = useState('');
 
+  // Helper to accurately display role count badge on whitelist cards (prevents displaying '0 roles' when unrestricted)
+  const formatRoleCountBadge = (canAction, specificRoles, legacyRoles) => {
+    if (canAction === false) return 'Disabled';
+    if (Array.isArray(specificRoles)) {
+      return specificRoles.length > 0 ? `${specificRoles.length} roles` : 'All Manageable';
+    }
+    if (Array.isArray(legacyRoles) && legacyRoles.length > 0) {
+      return `${legacyRoles.length} roles`;
+    }
+    return 'All Manageable';
+  };
+
   useEffect(() => {
     if (guildId) {
       fetchServerControlData();
@@ -199,6 +211,12 @@ export default function AdminServerControl({ guildId, onNavigateToServer }) {
     setErrorMsg(null);
     try {
       const res = await api.saveServerControlSettings(guildId, formSettings);
+      if (res.settings) {
+        setFormSettings(prev => ({
+          ...prev,
+          ...res.settings
+        }));
+      }
       setSuccessMsg('Server Control configuration saved successfully!');
       setTimeout(() => setSuccessMsg(null), 4000);
     } catch (err) {
@@ -1453,6 +1471,52 @@ export default function AdminServerControl({ guildId, onNavigateToServer }) {
               COMMAND CUSTOMIZATION & CHANNEL RESTRICTIONS
             </div>
 
+            {/* Inversion Warning Banner */}
+            {/\b(remove|rem|strip|take|del|delete)\b/i.test(formSettings.roleManager?.giveCommand || '') &&
+             /\b(give|add|assign)\b/i.test(formSettings.roleManager?.removeCommand || '') && (
+              <div style={{
+                padding: '12px 14px',
+                borderRadius: '8px',
+                backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                border: '1px solid rgba(239, 68, 68, 0.35)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '10px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#fca5a5', fontSize: '0.82rem', fontWeight: '600' }}>
+                  <AlertTriangle size={18} style={{ color: '#ef4444', flexShrink: 0 }} />
+                  <span>
+                    <strong>Inverted Triggers Detected:</strong> Give command is set to "remove" and Remove command is set to "give". This causes Discord give commands to execute in remove mode!
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setFormSettings(prev => ({
+                    ...prev,
+                    roleManager: {
+                      ...(prev.roleManager || {}),
+                      giveCommand: '?role give',
+                      removeCommand: '?role remove'
+                    }
+                  }))}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '6px',
+                    backgroundColor: '#ef4444',
+                    color: '#ffffff',
+                    border: 'none',
+                    fontWeight: '700',
+                    fontSize: '0.78rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Click to Fix & Set to Defaults
+                </button>
+              </div>
+            )}
+
             {/* Give Role Command Input */}
             <div>
               <label style={{ fontSize: '0.82rem', fontWeight: '700', color: '#cbd5e1', display: 'block', marginBottom: '6px' }}>
@@ -1915,7 +1979,7 @@ export default function AdminServerControl({ guildId, onNavigateToServer }) {
                               border: u.canGive === false ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid rgba(16, 185, 129, 0.3)',
                               color: u.canGive === false ? '#f87171' : '#34d399'
                             }}>
-                              🟢 Give: {u.canGive === false ? 'Disabled' : ((u.allowedGiveRoles?.length || u.allowedRoles?.length) ? `${(u.allowedGiveRoles || u.allowedRoles).length} roles` : 'All Manageable')}
+                              🟢 Give: {formatRoleCountBadge(u.canGive, u.allowedGiveRoles, u.allowedRoles)}
                             </span>
 
                             <span style={{
@@ -1927,7 +1991,7 @@ export default function AdminServerControl({ guildId, onNavigateToServer }) {
                               border: u.canRemove === false ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid rgba(244, 63, 94, 0.3)',
                               color: u.canRemove === false ? '#f87171' : '#fb7185'
                             }}>
-                              🔴 Remove: {u.canRemove === false ? 'Disabled' : ((u.allowedRemoveRoles?.length || u.allowedRoles?.length) ? `${(u.allowedRemoveRoles || u.allowedRoles).length} roles` : 'All Manageable')}
+                              🔴 Remove: {formatRoleCountBadge(u.canRemove, u.allowedRemoveRoles, u.allowedRoles)}
                             </span>
                           </div>
                         </div>
@@ -2043,7 +2107,7 @@ export default function AdminServerControl({ guildId, onNavigateToServer }) {
                               border: r.canGive === false ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid rgba(16, 185, 129, 0.3)',
                               color: r.canGive === false ? '#f87171' : '#34d399'
                             }}>
-                              🟢 Give: {r.canGive === false ? 'Disabled' : ((r.allowedGiveRoles?.length || r.allowedRoles?.length) ? `${(r.allowedGiveRoles || r.allowedRoles).length} roles` : 'All Manageable')}
+                              🟢 Give: {formatRoleCountBadge(r.canGive, r.allowedGiveRoles, r.allowedRoles)}
                             </span>
 
                             <span style={{
@@ -2055,7 +2119,7 @@ export default function AdminServerControl({ guildId, onNavigateToServer }) {
                               border: r.canRemove === false ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid rgba(244, 63, 94, 0.3)',
                               color: r.canRemove === false ? '#f87171' : '#fb7185'
                             }}>
-                              🔴 Remove: {r.canRemove === false ? 'Disabled' : ((r.allowedRemoveRoles?.length || r.allowedRoles?.length) ? `${(r.allowedRemoveRoles || r.allowedRoles).length} roles` : 'All Manageable')}
+                              🔴 Remove: {formatRoleCountBadge(r.canRemove, r.allowedRemoveRoles, r.allowedRoles)}
                             </span>
                           </div>
                         </div>
@@ -3991,7 +4055,10 @@ export default function AdminServerControl({ guildId, onNavigateToServer }) {
                 onClick={() => {
                   setShowAddRoleWhitelistRoleModal(false);
                   setSelectedRoleWhitelistRoleId('');
-                  setSelectedRoleWhitelistAllowedRoles([]);
+                  setSelectedRoleWhitelistCanGive(true);
+                  setSelectedRoleWhitelistCanRemove(true);
+                  setSelectedRoleWhitelistAllowedGiveRoles([]);
+                  setSelectedRoleWhitelistAllowedRemoveRoles([]);
                   setRoleFilterSearchTerm('');
                 }}
                 style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '1.3rem' }}
