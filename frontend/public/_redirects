@@ -1,3 +1,0 @@
-/uploads/*  http://16.60.129.35:35565/uploads/:splat  200
-/api/*      http://16.60.129.35:35565/api/:splat      200
-/*          /index.html                                      200
